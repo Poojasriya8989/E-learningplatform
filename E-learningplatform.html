@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Learning Platform</title>
+    <!-- Use Tailwind CSS for a modern, responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        .progress-bar-fill {
+            transition: width 0.5s ease-in-out;
+        }
+        /* Style for the video container to maintain aspect ratio */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 0.75rem; /* rounded-xl */
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Main Container -->
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-6 md:p-10">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">E-Learning Platform</h1>
+            <p class="mt-2 text-lg text-gray-500">Welcome to your learning journey!</p>
+        </header>
+
+        <!-- Main Content Area - Courses List -->
+        <div id="course-list-page" class="transition-opacity duration-500">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Available Courses</h2>
+            <div id="course-list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Course cards will be rendered here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Course Detail Area -->
+        <div id="course-detail-page" class="hidden transition-opacity duration-500">
+            <button id="back-button" class="flex items-center text-blue-600 font-semibold mb-6 hover:text-blue-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Courses
+            </button>
+            <h2 id="course-title" class="text-3xl md:text-4xl font-bold text-gray-800 mb-4"></h2>
+            <p id="course-description" class="text-lg text-gray-600 mb-6"></p>
+
+            <!-- Video Player Section -->
+            <div id="video-embed-container" class="video-container shadow-lg mb-6">
+                <!-- The iframe will be dynamically inserted here -->
+            </div>
+
+            <!-- Progress Tracking Section -->
+            <div class="bg-gray-100 rounded-xl p-6 shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Your Progress</h3>
+                    <span id="progress-text" class="text-lg font-semibold text-blue-600">0%</span>
+                </div>
+                <div class="w-full bg-gray-300 rounded-full h-3">
+                    <div id="progress-bar" class="bg-blue-600 h-3 rounded-full progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button id="mark-complete-button" class="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                        Mark as Complete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Data for the e-learning platform
+        let courses = [
+            {
+                id: 1,
+                title: "Introduction to HTML",
+                description: "Learn the fundamentals of web development with HTML.",
+                thumbnail: "https://placehold.co/400x200/4F46E5/ffffff?text=HTML",
+                videoUrl: "https://youtu.be/m4WLln2UMzk?si=dLNA2NeNIQOgHj91",
+                progress: 0,
+                totalSections: 5
+            },
+            {
+                id: 2,
+                title: "CSS Styling Masterclass",
+                description: "Deep dive into Cascading Style Sheets and create beautiful layouts.",
+                thumbnail: "https://placehold.co/400x200/F97316/ffffff?text=CSS",
+                videoUrl: "https://youtu.be/yfoY53QXEnI?si=S1aT2MAOUQ7ZHBP5",
+                progress: 50,
+                totalSections: 8
+            },
+            {
+                id: 3,
+                title: "JavaScript Essentials",
+                description: "Master the core concepts of JavaScript for interactive web pages.",
+                thumbnail: "https://placehold.co/400x200/EAB308/ffffff?text=JavaScript",
+                videoUrl: "https://youtu.be/W6NZfCO5SIk?si=AI1QIBydLx59whNj",
+                progress: 0,
+                totalSections: 10
+            }
+        ];
+
+        // DOM element references
+        const courseListPage = document.getElementById('course-list-page');
+        const courseListContainer = document.getElementById('course-list-container');
+        const courseDetailPage = document.getElementById('course-detail-page');
+        const courseTitle = document.getElementById('course-title');
+        const courseDescription = document.getElementById('course-description');
+        const videoEmbedContainer = document.getElementById('video-embed-container');
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        const backButton = document.getElementById('back-button');
+        const markCompleteButton = document.getElementById('mark-complete-button');
+
+        let currentCourseId = null;
+
+        // Function to render the list of courses
+        function renderCourseList() {
+            courseListContainer.innerHTML = '';
+            courses.forEach(course => {
+                const card = document.createElement('div');
+                card.id = `course-card-${course.id}`;
+                card.classList.add('bg-white', 'rounded-xl', 'shadow-lg', 'overflow-hidden', 'cursor-pointer', 'transform', 'hover:scale-105', 'transition-transform');
+                card.innerHTML = `
+                    <img src="${course.thumbnail}" alt="${course.title}" class="w-full h-40 object-cover">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900">${course.title}</h3>
+                        <p class="text-sm text-gray-500 mt-1 mb-3">${course.description}</p>
+                        <div class="w-full bg-gray-300 rounded-full h-2 mt-2">
+                            <div class="bg-blue-600 h-2 rounded-full progress-bar-fill" style="width: ${course.progress}%;"></div>
+                        </div>
+                        <p class="text-xs text-right mt-1 text-gray-500">${course.progress}% Complete</p>
+                    </div>
+                `;
+                card.addEventListener('click', () => showCourseDetail(course.id));
+                courseListContainer.appendChild(card);
+            });
+        }
+
+        // Function to show the course detail page
+        function showCourseDetail(courseId) {
+            currentCourseId = courseId;
+            const course = courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            // Update details
+            courseTitle.textContent = course.title;
+            courseDescription.textContent = course.description;
+            
+            // Set the video embed code
+            videoEmbedContainer.innerHTML = `
+                <iframe
+                    src="${course.videoUrl}"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                ></iframe>
+            `;
+
+            // Update progress tracker
+            updateProgressBar(course);
+
+            // Toggle pages
+            courseListPage.classList.add('hidden');
+            courseDetailPage.classList.remove('hidden');
+        }
+
+        // Function to update the progress bar and text
+        function updateProgressBar(course) {
+            progressText.textContent = `${course.progress}%`;
+            progressBar.style.width = `${course.progress}%`;
+            markCompleteButton.textContent = course.progress === 100 ? "Completed" : "Mark as Complete";
+            markCompleteButton.disabled = course.progress === 100;
+            markCompleteButton.classList.toggle('opacity-50', course.progress === 100);
+            markCompleteButton.classList.toggle('cursor-not-allowed', course.progress === 100);
+        }
+        
+        // Event listener for the back button
+        backButton.addEventListener('click', () => {
+            renderCourseList(); // Re-render to show updated progress
+            courseDetailPage.classList.add('hidden');
+            courseListPage.classList.remove('hidden');
+            currentCourseId = null;
+        });
+
+        // Event listener for the mark as complete button
+        markCompleteButton.addEventListener('click', () => {
+            if (currentCourseId) {
+                const course = courses.find(c => c.id === currentCourseId);
+                if (course && course.progress < 100) {
+                    // This is a simple example. In a real app, this would be more complex.
+                    course.progress = 100;
+                    updateProgressBar(course);
+                }
+            }
+        });
+
+        // Initial render on page load
+        document.addEventListener('DOMContentLoaded', renderCourseList);
+    </script>
+</body>
+</html>
